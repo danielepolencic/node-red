@@ -1,0 +1,17 @@
+{
+  "name": "noderosso",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node-red --userDir ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "human-interval": "^1.0.0",
+    "node-fetch": "^2.6.0",
+    "node-red": "^1.0.6"
+  }
+}
