@@ -10,6 +10,7 @@
   "author": "",
   "license": "UNLICENSED",
   "dependencies": {
+    "dclassify": "^1.1.2",
     "human-interval": "^1.0.0",
     "node-fetch": "^2.6.0",
     "node-red": "^1.0.6"
