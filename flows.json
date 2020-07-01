@@ -11,15 +11,15 @@
         "type": "inject",
         "z": "a87de0f3.4376f",
         "name": "",
-        "topic": "",
+        "topic": "topic",
         "payload": "",
         "payloadType": "date",
         "repeat": "",
         "crontab": "",
         "once": false,
-        "onceDelay": 0.1,
-        "x": 200,
-        "y": 200,
+        "onceDelay": "2",
+        "x": 260,
+        "y": 120,
         "wires": [
             [
                 "59ed574d.5257c8"
@@ -30,15 +30,15 @@
         "id": "30557f17.9a462",
         "type": "debug",
         "z": "a87de0f3.4376f",
-        "name": "",
+        "name": "hello",
         "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
-        "complete": "true",
-        "targetType": "full",
-        "x": 860,
-        "y": 220,
+        "complete": "payload",
+        "targetType": "msg",
+        "x": 1070,
+        "y": 180,
         "wires": []
     },
     {
@@ -46,11 +46,81 @@
         "type": "example",
         "z": "a87de0f3.4376f",
         "name": "Dan",
-        "x": 530,
-        "y": 360,
+        "x": 650,
+        "y": 120,
         "wires": [
             [
                 "30557f17.9a462"
+            ]
+        ],
+        "icon": "node-red/file.svg"
+    },
+    {
+        "id": "76badf0c.346e8",
+        "type": "classifier",
+        "z": "a87de0f3.4376f",
+        "name": "Classifier",
+        "sheetId": "asd",
+        "x": 620,
+        "y": 300,
+        "wires": [
+            [
+                "45aca1bb.f2139"
+            ]
+        ]
+    },
+    {
+        "id": "e8d57a97.8a55a8",
+        "type": "inject",
+        "z": "a87de0f3.4376f",
+        "name": "New Text",
+        "topic": "string",
+        "payload": "awesome, cool, amazing!! Yay.",
+        "payloadType": "str",
+        "repeat": "1",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 190,
+        "y": 280,
+        "wires": [
+            [
+                "76badf0c.346e8"
+            ]
+        ]
+    },
+    {
+        "id": "45aca1bb.f2139",
+        "type": "debug",
+        "z": "a87de0f3.4376f",
+        "name": "result",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "category",
+        "targetType": "msg",
+        "x": 1070,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "f1018708.79f648",
+        "type": "inject",
+        "z": "a87de0f3.4376f",
+        "name": "New Text 2",
+        "topic": "",
+        "payload": "terrible, shitty thing. Damn. Sucks!!",
+        "payloadType": "str",
+        "repeat": "1.2",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 190,
+        "y": 320,
+        "wires": [
+            [
+                "76badf0c.346e8"
             ]
         ]
     }
