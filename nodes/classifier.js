@@ -1,9 +1,10 @@
+const dclassify = require('dclassify')
+
 module.exports = function (RED) {
   function ClassifierNode(config) {
     RED.nodes.createNode(this, config)
     const node = this
 
-    const dclassify = require('dclassify')
     const Classifier = dclassify.Classifier
     const DataSet = dclassify.DataSet
     const Document = dclassify.Document
@@ -36,18 +37,21 @@ module.exports = function (RED) {
     let queueNum = 1
     node.on('input', function (msg, send, done) {
       const payload = msg.payload
-      const id = msg._msgid
       const newText = new Document(`Text ${queueNum++}`, tokenize(payload))
-
-      fakePromise.then(() => {
-        const result = classifier.classify(newText)
-        send({
-          payload,
-          category: result.category,
-          name: newText.id,
+      fakePromise
+        .then(() => {
+          const result = classifier.classify(newText)
+          send({
+            payload,
+            category: result.category,
+            name: newText.id,
+          })
+          done()
         })
-        done()
-      })
+        .catch((err) => {
+          node.error(err)
+          done()
+        })
     })
   }
   RED.nodes.registerType('classifier', ClassifierNode)
