@@ -1,7 +1,7 @@
 module.exports = function (RED) {
   function ClassifierNode(config) {
     RED.nodes.createNode(this, config)
-    const name = config.name
+    const node = this
 
     const dclassify = require('dclassify')
     const Classifier = dclassify.Classifier
@@ -22,25 +22,32 @@ module.exports = function (RED) {
 
     const classifier = new Classifier(options)
 
-    // train the classifier
-    classifier.train(data)
+    node.log('Classifier is training....')
 
-    console.log('Classifier trained.')
-    console.log(JSON.stringify(classifier.probabilities, null, 2))
+    const fakePromise = new Promise((resolve) =>
+      setTimeout(() => {
+        classifier.train(data)
+        node.log('Classifier trained after 10 seconds.')
+        resolve()
+      }, 10000),
+    )
 
-    const node = this
+    // For debug
+    let queueNum = 1
     node.on('input', function (msg, send, done) {
-      node.log(JSON.stringify(msg, null, 2))
       const payload = msg.payload
       const id = msg._msgid
-      const newText = new Document(id, tokenize(payload))
-      const result = classifier.classify(newText)
-      node.log(JSON.stringify(result, null, 2))
-      send({
-        payload,
-        category: result.category,
+      const newText = new Document(`Text ${queueNum++}`, tokenize(payload))
+
+      fakePromise.then(() => {
+        const result = classifier.classify(newText)
+        send({
+          payload,
+          category: result.category,
+          name: newText.id,
+        })
+        done()
       })
-      done()
     })
   }
   RED.nodes.registerType('classifier', ClassifierNode)

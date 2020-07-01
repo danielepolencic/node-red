@@ -62,7 +62,7 @@
         "name": "Classifier",
         "sheetId": "asd",
         "x": 620,
-        "y": 280,
+        "y": 300,
         "wires": [
             [
                 "45aca1bb.f2139"
@@ -77,11 +77,11 @@
         "topic": "string",
         "payload": "awesome, cool, amazing!! Yay.",
         "payloadType": "str",
-        "repeat": "",
+        "repeat": "1",
         "crontab": "",
         "once": false,
         "onceDelay": 0.1,
-        "x": 260,
+        "x": 190,
         "y": 280,
         "wires": [
             [
@@ -98,10 +98,30 @@
         "tosidebar": true,
         "console": false,
         "tostatus": false,
-        "complete": "true",
-        "targetType": "full",
-        "x": 1030,
-        "y": 320,
+        "complete": "category",
+        "targetType": "msg",
+        "x": 1070,
+        "y": 300,
         "wires": []
+    },
+    {
+        "id": "f1018708.79f648",
+        "type": "inject",
+        "z": "a87de0f3.4376f",
+        "name": "New Text 2",
+        "topic": "",
+        "payload": "terrible, shitty thing. Damn. Sucks!!",
+        "payloadType": "str",
+        "repeat": "1.2",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 190,
+        "y": 320,
+        "wires": [
+            [
+                "76badf0c.346e8"
+            ]
+        ]
     }
 ]
