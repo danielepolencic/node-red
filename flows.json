@@ -61,7 +61,7 @@
         "z": "a87de0f3.4376f",
         "name": "Classifier",
         "sheetId": "1VNfad_dJBzGQFG_Jw5m3paB_BErpl-rOgGSiNYPdW0E",
-        "sheetPage": "2",
+        "sheetPage": "1",
         "x": 460,
         "y": 280,
         "wires": [
@@ -97,7 +97,7 @@
         "type": "debug",
         "z": "a87de0f3.4376f",
         "name": "category",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -147,7 +147,7 @@
         "type": "debug",
         "z": "a87de0f3.4376f",
         "name": "name",
-        "active": false,
+        "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -163,8 +163,8 @@
         "z": "a87de0f3.4376f",
         "name": "Google sheet sample link",
         "info": "[https://docs.google.com/spreadsheets/d/1VNfad_dJBzGQFG_Jw5m3paB_BErpl-rOgGSiNYPdW0E/edit?usp=sharing](https://docs.google.com/spreadsheets/d/1VNfad_dJBzGQFG_Jw5m3paB_BErpl-rOgGSiNYPdW0E/edit?usp=sharing)\n\nid: 1VNfad_dJBzGQFG_Jw5m3paB_BErpl-rOgGSiNYPdW0E",
-        "x": 530,
-        "y": 340,
+        "x": 510,
+        "y": 380,
         "wires": []
     },
     {
@@ -206,5 +206,29 @@
                 "76badf0c.346e8"
             ]
         ]
+    },
+    {
+        "id": "93b996fe.a80c88",
+        "type": "inject",
+        "z": "a87de0f3.4376f",
+        "name": "Reload",
+        "topic": "",
+        "payload": "reload",
+        "payloadType": "str",
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 270,
+        "y": 420,
+        "wires": [
+            [
+                "76badf0c.346e8"
+            ]
+        ],
+        "outputLabels": [
+            "Reload"
+        ],
+        "icon": "font-awesome/fa-refresh"
     }
 ]

@@ -13,12 +13,15 @@ module.exports = function (RED) {
     const sheetPage = config.sheetPage
     const sheetUrl = getSheetUrl(sheetId, sheetPage)
 
-    const promise = trainModel(sheetUrl, node)
+    let promise = trainModel(sheetUrl, node)
 
     // For debug
     let queueNum = 1
     node.on('input', function (msg, send, done) {
       const payload = msg.payload
+      if (payload === 'reload') {
+        promise = trainModel(sheetUrl, node)
+      }
       const newText = new Document(`Text ${queueNum++}`, tokenize(payload))
       promise
         .then((classifier) => {
