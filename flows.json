@@ -19,7 +19,7 @@
         "once": false,
         "onceDelay": "2",
         "x": 260,
-        "y": 120,
+        "y": 40,
         "wires": [
             [
                 "59ed574d.5257c8"
@@ -37,8 +37,8 @@
         "tostatus": false,
         "complete": "payload",
         "targetType": "msg",
-        "x": 1070,
-        "y": 180,
+        "x": 930,
+        "y": 40,
         "wires": []
     },
     {
@@ -46,8 +46,8 @@
         "type": "example",
         "z": "a87de0f3.4376f",
         "name": "Dan",
-        "x": 650,
-        "y": 120,
+        "x": 550,
+        "y": 40,
         "wires": [
             [
                 "30557f17.9a462"
@@ -60,12 +60,15 @@
         "type": "classifier",
         "z": "a87de0f3.4376f",
         "name": "Classifier",
-        "sheetId": "asd",
-        "x": 620,
-        "y": 300,
+        "sheetId": "1VNfad_dJBzGQFG_Jw5m3paB_BErpl-rOgGSiNYPdW0E",
+        "sheetPage": "2",
+        "x": 460,
+        "y": 280,
         "wires": [
             [
-                "45aca1bb.f2139"
+                "45aca1bb.f2139",
+                "ee2b77f6.9e2b48",
+                "4987ae6f.e4f39"
             ]
         ]
     },
@@ -73,16 +76,16 @@
         "id": "e8d57a97.8a55a8",
         "type": "inject",
         "z": "a87de0f3.4376f",
-        "name": "New Text",
+        "name": "Positive Text",
         "topic": "string",
         "payload": "awesome, cool, amazing!! Yay.",
         "payloadType": "str",
-        "repeat": "1",
+        "repeat": "3",
         "crontab": "",
         "once": false,
         "onceDelay": 0.1,
-        "x": 190,
-        "y": 280,
+        "x": 260,
+        "y": 220,
         "wires": [
             [
                 "76badf0c.346e8"
@@ -93,31 +96,111 @@
         "id": "45aca1bb.f2139",
         "type": "debug",
         "z": "a87de0f3.4376f",
-        "name": "result",
+        "name": "category",
         "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
         "complete": "category",
         "targetType": "msg",
-        "x": 1070,
-        "y": 300,
+        "x": 660,
+        "y": 220,
         "wires": []
     },
     {
         "id": "f1018708.79f648",
         "type": "inject",
         "z": "a87de0f3.4376f",
-        "name": "New Text 2",
+        "name": "Negative Text",
         "topic": "",
         "payload": "terrible, shitty thing. Damn. Sucks!!",
         "payloadType": "str",
-        "repeat": "1.2",
+        "repeat": "5",
         "crontab": "",
         "once": false,
         "onceDelay": 0.1,
-        "x": 190,
-        "y": 320,
+        "x": 260,
+        "y": 260,
+        "wires": [
+            [
+                "76badf0c.346e8"
+            ]
+        ]
+    },
+    {
+        "id": "ee2b77f6.9e2b48",
+        "type": "debug",
+        "z": "a87de0f3.4376f",
+        "name": "Object",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "x": 650,
+        "y": 300,
+        "wires": []
+    },
+    {
+        "id": "4987ae6f.e4f39",
+        "type": "debug",
+        "z": "a87de0f3.4376f",
+        "name": "name",
+        "active": false,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "name",
+        "targetType": "msg",
+        "x": 650,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "ee51e14e.236ba",
+        "type": "comment",
+        "z": "a87de0f3.4376f",
+        "name": "Google sheet sample link",
+        "info": "[https://docs.google.com/spreadsheets/d/1VNfad_dJBzGQFG_Jw5m3paB_BErpl-rOgGSiNYPdW0E/edit?usp=sharing](https://docs.google.com/spreadsheets/d/1VNfad_dJBzGQFG_Jw5m3paB_BErpl-rOgGSiNYPdW0E/edit?usp=sharing)\n\nid: 1VNfad_dJBzGQFG_Jw5m3paB_BErpl-rOgGSiNYPdW0E",
+        "x": 530,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "a071ea33.2f20d8",
+        "type": "inject",
+        "z": "a87de0f3.4376f",
+        "name": "Positive Text",
+        "topic": "string",
+        "payload": "amazing, awesome movie!! Yeah!! Oh boy",
+        "payloadType": "str",
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "x": 250,
+        "y": 300,
+        "wires": [
+            [
+                "76badf0c.346e8"
+            ]
+        ]
+    },
+    {
+        "id": "75e7d82c.c1d178",
+        "type": "inject",
+        "z": "a87de0f3.4376f",
+        "name": "Positive Text",
+        "topic": "string",
+        "payload": "Sweet, this is incredible, amazing, perfect, great!!",
+        "payloadType": "str",
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "5",
+        "x": 250,
+        "y": 340,
         "wires": [
             [
                 "76badf0c.346e8"

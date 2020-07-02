@@ -5,6 +5,7 @@
     defaults: {
       name: { value: '' },
       sheetId: { value: '' },
+      sheetPage: { value: 1 },
     },
     inputs: 1,
     outputs: 1,
@@ -21,8 +22,12 @@
     <input type="text" id="node-input-name" placeholder="Name">
   </div>
   <div class="form-row">
-    <label for="node-input-sheetId"><i class="fa fa-tag"></i> Google Sheet Id</label>
+    <label for="node-input-sheetId"><i class="fa fa-file"></i> Google Sheet Id</label>
     <input type="text" id="node-input-sheetId" placeholder="Google Sheet Id">
+  </div>
+  <div class="form-row">
+    <label for="node-input-sheetPage"><i class="fa fa-file"></i> Google Sheet Page</label>
+    <input type="number" id="node-input-sheetPage">
   </div>
 </script>
 
