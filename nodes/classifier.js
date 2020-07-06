@@ -3,6 +3,12 @@ const dclassify = require('dclassify')
 const Classifier = dclassify.Classifier
 const Document = dclassify.Document
 const DataSet = dclassify.DataSet
+const inspect = require('unist-util-inspect')
+const English = require('parse-english')
+const Unist$ = require('unist-util-select')
+const pos = require('retext-pos')()
+const keywords = require('retext-keywords')()
+const toString = require('nlcst-to-string')
 
 module.exports = function (RED) {
   function ClassifierNode(config) {
@@ -21,6 +27,12 @@ module.exports = function (RED) {
       const payload = msg.payload
       if (payload === 'reload') {
         promise = trainModel(sheetUrl, node)
+        send({
+          payload,
+          category: '',
+          name: payload,
+        })
+        done()
       }
       const newText = new Document(`Text ${queueNum++}`, tokenize(payload))
       promise
@@ -95,6 +107,9 @@ function createDataset(entries) {
       }
     }, {})
 
+  const texts = cols.texts
+  const categories = cols.categories
+
   const rows = Object.keys(texts).map((row) => {
     return {
       row,
@@ -124,11 +139,17 @@ function createDataset(entries) {
 }
 
 function tokenize(str) {
-  return str
-    .toLowerCase()
-    .replace(/\W/g, ' ')
-    .split(' ')
-    .filter((it) => it !== '')
+  const tree = new English().parse(str)
+  const file = { data: {} }
+  pos(tree)
+  keywords(tree, file)
+  const allKeywords = file.data.keywords.map((keyword) => {
+    return toString(keyword.matches[0].node)
+  })
+  const allKeywordPhrases = file.data.keyphrases.map((phrase) => {
+    return phrase.matches[0].nodes.map(toString).join('')
+  })
+  return [...allKeywords, ...allKeywordPhrases]
 }
 
 function getSheetUrl(id, page) {
