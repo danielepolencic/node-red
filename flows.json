@@ -61,7 +61,7 @@
         "z": "a87de0f3.4376f",
         "name": "Classifier",
         "sheetId": "1VNfad_dJBzGQFG_Jw5m3paB_BErpl-rOgGSiNYPdW0E",
-        "sheetPage": "2",
+        "sheetPage": "1",
         "x": 480,
         "y": 280,
         "wires": [
@@ -87,9 +87,7 @@
         "x": 240,
         "y": 220,
         "wires": [
-            [
-                "76badf0c.346e8"
-            ]
+            []
         ]
     },
     {
@@ -122,9 +120,7 @@
         "x": 240,
         "y": 260,
         "wires": [
-            [
-                "76badf0c.346e8"
-            ]
+            []
         ]
     },
     {
