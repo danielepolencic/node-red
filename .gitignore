@@ -5,3 +5,5 @@ node_modules/
 flows_cred.json
 context/
 .flows_cred.json.backup
+nodes/*.js
+nodes/*.js.map
