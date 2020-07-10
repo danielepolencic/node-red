@@ -2,6 +2,10 @@ declare module 'dclassify' {
   class Classifier {
     train(dataset: DataSet): void
     classify(document: Document): Result
+    applyInverse: boolean
+    probabilityThreshold: number
+    defaultCategory: string
+    probabilities: any
   }
 
   class Document {
