@@ -1,13 +1,12 @@
 import { Worker, isMainThread, parentPort, workerData, WorkerOptions, MessagePort } from 'worker_threads'
 import { Response } from 'node-fetch'
-import { Node as EnglishNode } from 'unist'
+import { Node } from 'unist'
 import {
   Classifier as ClassifierClass,
   ClassifierConstructor,
   DocumentConstructor,
   DataSetConstructor,
 } from 'dclassify'
-import { Node } from 'node-red'
 
 const fetch = require('node-fetch')
 const dclassify = require('dclassify')
@@ -30,17 +29,18 @@ interface SheetCell {
 }
 
 interface Keyword {
-  matches: { node: EnglishNode }[]
+  matches: { node: Node }[]
 }
 
 interface Phrase {
-  matches: { nodes: EnglishNode[] }[]
+  matches: { nodes: Node[] }[]
 }
 
 export const MESSAGE = {
   STATUS: 'STATUS',
   ERROR: 'ERROR',
   LOG: 'LOG',
+  TRAINED: 'TRAINED',
   RESULT: 'RESULT',
   PAYLOAD: 'PAYLOAD',
 }
@@ -57,45 +57,32 @@ if (!isMainThread) {
       })
     })
     port.on('message', (message) => {
-      if (message.type === MESSAGE.PAYLOAD) {
-        classifierPromise.then((classifier) => {
-          const newText = new Document(`Text ${queueNum++}`, tokenize(message.value))
-          const result = classifier.classify(newText)
-          port.postMessage({
-            type: MESSAGE.RESULT,
-            value: {
-              payload: message.value,
-              category: result.category,
-              name: newText.id,
-            },
+      switch (message.type) {
+        case MESSAGE.PAYLOAD:
+          classifierPromise.then((classifier) => {
+            const newText = new Document(`Text ${queueNum++}`, tokenize(message.value))
+            const result = classifier.classify(newText)
+            port.postMessage({
+              type: MESSAGE.RESULT,
+              value: {
+                payload: message.value,
+                category: result.category,
+                name: `${newText.id}`,
+              },
+            })
           })
-        })
+          break
+
+        default:
+          break
       }
     })
   }
 }
 
-export function trainingWorker(sheetUrl: string, node: Node): Worker {
+export function trainingWorker(sheetUrl: string): Worker {
   const worker = workerTs(__filename, {
     workerData: { sheetUrl },
-  })
-  worker.on('message', (message) => {
-    switch (message.type) {
-      case MESSAGE.STATUS:
-        node.status(message.value)
-        break
-      case MESSAGE.ERROR:
-        node.error(message.value)
-        break
-      case MESSAGE.LOG:
-      default:
-        node.log(message.value)
-        break
-    }
-  })
-  worker.on('error', (err) => node.error(err))
-  worker.on('exit', (code: number) => {
-    if (code !== 0) node.error(new Error(`Worker stopped with exit code ${code}`))
   })
   return worker
 }
@@ -139,8 +126,12 @@ function trainModel(sheetUrl: string, port: MessagePort): Promise<ClassifierClas
       return new Promise((resolve) => {
         const startTime = process.hrtime()
         classifier.train(dataset)
-        port.postMessage({ type: MESSAGE.LOG, value: `Model trained in ${process.hrtime(startTime)[0]} seconds` })
+        port.postMessage({
+          type: MESSAGE.LOG,
+          value: `Model trained in ${process.hrtime(startTime)[0]} seconds`,
+        })
         port.postMessage({ type: MESSAGE.STATUS, value: { fill: 'green', shape: 'dot', text: 'Classifier Trained' } })
+        port.postMessage({ type: MESSAGE.TRAINED, value: '' })
 
         resolve(classifier)
       })

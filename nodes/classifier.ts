@@ -1,23 +1,6 @@
 import { Red, NodeProperties, Node } from 'node-red'
-import { Response } from 'node-fetch'
-import { Node as EnglishNode } from 'unist'
-import {
-  Classifier as ClassifierClass,
-  ClassifierConstructor,
-  DocumentConstructor,
-  DataSetConstructor,
-} from 'dclassify'
-import { tokenize, trainingWorker, MESSAGE } from '../workers/classifierWorker'
-
-const fetch = require('node-fetch')
-const dclassify = require('dclassify')
-const Classifier: ClassifierConstructor = dclassify.Classifier
-const Document: DocumentConstructor = dclassify.Document
-const DataSet: DataSetConstructor = dclassify.DataSet
-const English = require('parse-english')
-const pos = require('retext-pos')()
-const keywords = require('retext-keywords')()
-const toString = require('nlcst-to-string')
+import { trainingWorker, MESSAGE } from '../workers/classifierWorker'
+import { Worker } from 'worker_threads'
 
 interface NodeProps extends NodeProperties {
   sheetId: string
@@ -28,35 +11,55 @@ module.exports = function (RED: Red) {
   function ClassifierNode(this: Node, config: NodeProps) {
     RED.nodes.createNode(this, config)
     const node = this
-
     const sheetId = config.sheetId
     const sheetPage = config.sheetPage
     const sheetUrl = getSheetUrl(sheetId, sheetPage)
-    let worker = trainingWorker(sheetUrl, node)
+    let newWorker: Worker
+    let currentWorker: Worker
 
-    worker.on('message', (message) => {
-      if (message.type === MESSAGE.RESULT) {
-        node.send({
-          payload: message.value.payload,
-          category: message.value.category,
-          name: message.value.name,
-        })
-      }
-    })
+    currentWorker = trainingWorker(sheetUrl)
+    initWorkerListener(currentWorker)
+    function initWorkerListener(worker: Worker) {
+      worker.on('message', (message) => {
+        switch (message.type) {
+          case MESSAGE.STATUS:
+            node.status(message.value)
+            break
+          case MESSAGE.ERROR:
+            node.error(message.value)
+            break
+          case MESSAGE.LOG:
+            node.log(message.value)
+            break
+          case MESSAGE.RESULT:
+            node.send({
+              payload: message.value.payload,
+              category: message.value.category,
+              // For debug
+              name: `${message.value.name}, Worker ${currentWorker.threadId}`,
+            })
+            break
+          case MESSAGE.TRAINED:
+            currentWorker = worker
+            break
+          default:
+            break
+        }
+      })
+      worker.on('error', (err) => node.error(err))
+      worker.on('exit', (code: number) => {
+        if (code !== 0) node.error(new Error(`Worker stopped with exit code ${code}`))
+      })
+    }
 
-    // For debug
     node.on('input', function (msg, send, done) {
       const payload = msg.payload
-      // if (payload === 'reload') {
-      //   promise = trainingWorker(sheetUrl, node)
-      //   send({
-      //     payload,
-      //     category: '',
-      //     name: payload,
-      //   })
-      //   done()
-      // }
-      worker.postMessage({ type: MESSAGE.PAYLOAD, value: payload })
+      if (payload === 'reload') {
+        newWorker = trainingWorker(sheetUrl)
+        initWorkerListener(newWorker)
+        done()
+      }
+      currentWorker.postMessage({ type: MESSAGE.PAYLOAD, value: payload })
       done()
     })
   }
