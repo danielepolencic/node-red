@@ -18,8 +18,8 @@ module.exports = function (RED: Red) {
     let currentWorker: Worker
 
     currentWorker = trainingWorker(sheetUrl)
-    initWorkerListener(currentWorker)
-    function initWorkerListener(worker: Worker) {
+    initWorkerListener(currentWorker, true)
+    function initWorkerListener(worker: Worker, isFirstWorker = false) {
       worker.on('message', (message) => {
         switch (message.type) {
           case MESSAGE.STATUS:
@@ -40,6 +40,12 @@ module.exports = function (RED: Red) {
             })
             break
           case MESSAGE.TRAINED:
+            if (!isFirstWorker) {
+              currentWorker.postMessage({
+                type: MESSAGE.SHUTDOWN,
+                value: currentWorker.threadId,
+              })
+            }
             currentWorker = worker
             break
           default:
@@ -58,6 +64,7 @@ module.exports = function (RED: Red) {
         newWorker = trainingWorker(sheetUrl)
         initWorkerListener(newWorker)
         done()
+        return
       }
       currentWorker.postMessage({ type: MESSAGE.PAYLOAD, value: payload })
       done()

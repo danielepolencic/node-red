@@ -44,36 +44,40 @@ export const MESSAGE = {
   TRAINED: 'TRAINED',
   RESULT: 'RESULT',
   PAYLOAD: 'PAYLOAD',
+  SHUTDOWN: 'SHUTDOWN',
 }
 
 // For debug
 let queueNum = 1
 
 if (!isMainThread) {
+  initWorker()
+}
+
+async function initWorker() {
   if (parentPort) {
     const port = parentPort
-    const classifierPromise: Promise<ClassifierClass> = trainModel(workerData.sheetUrl, port).then((classifier) => {
-      return new Promise((resolve) => {
-        resolve(classifier)
-      })
-    })
+    const classifier = await trainModel(workerData.sheetUrl, port)
     port.on('message', (message) => {
       switch (message.type) {
         case MESSAGE.PAYLOAD:
-          classifierPromise.then((classifier) => {
-            const newText = new Document(`Text ${queueNum++}`, tokenize(message.value))
-            const result = classifier.classify(newText)
-            port.postMessage({
-              type: MESSAGE.RESULT,
-              value: {
-                payload: message.value,
-                category: result.category,
-                name: `${newText.id}`,
-              },
-            })
+          const newText = new Document(`Text ${queueNum++}`, tokenize(message.value))
+          const result = classifier.classify(newText)
+          port.postMessage({
+            type: MESSAGE.RESULT,
+            value: {
+              payload: message.value,
+              category: result.category,
+              name: `${newText.id}`,
+            },
           })
           break
-
+        case MESSAGE.SHUTDOWN:
+          port.postMessage({
+            type: MESSAGE.LOG,
+            value: `Worker ${message.value} is shuting down...`,
+          })
+          process.exit(0)
         default:
           break
       }
@@ -96,43 +100,36 @@ function workerTs(file: string, options: WorkerOptions) {
   return new Worker(resolve(__dirname, 'classifierWorker.js'), options)
 }
 
-function trainModel(sheetUrl: string, port: MessagePort): Promise<ClassifierClass> {
+async function trainModel(sheetUrl: string, port: MessagePort) {
   port.postMessage({ type: MESSAGE.STATUS, value: { fill: 'yellow', shape: 'ring', text: 'Fetch And Train Data...' } })
-  return fetch(sheetUrl)
-    .then((res: Response) => res.json())
-    .then((json: any) => {
-      port.postMessage({ type: MESSAGE.LOG, value: 'Data Fetched' })
-      return json
-    })
-    .then((json: any) => {
-      const entries = json.feed.entry
-      const startTime = process.hrtime()
-      const dataset = createDataset(entries)
-      port.postMessage({ type: MESSAGE.LOG, value: `Dataset created in ${process.hrtime(startTime)[0]} seconds` })
+  let json
+  try {
+    const response: Response = await fetch(sheetUrl)
+    json = await response.json()
+  } catch (err) {
+    port.postMessage({ type: MESSAGE.ERROR, value: `${err.message}.` })
+    port.postMessage({ type: MESSAGE.ERROR, value: 'Did you publish your google sheet?' })
+    port.postMessage({ type: MESSAGE.STATUS, value: { fill: 'red', shape: 'ring', text: err.message } })
+    process.exit(0)
+  }
 
-      const options = {
-        applyInverse: true,
-      }
-      const classifier: ClassifierClass = new Classifier(options)
+  port.postMessage({ type: MESSAGE.LOG, value: 'Data Fetched' })
+  const entries = json.feed.entry
+  let startTime = process.hrtime()
+  const dataset = createDataset(entries)
+  port.postMessage({ type: MESSAGE.LOG, value: `Dataset created in ${process.hrtime(startTime)[0]} seconds` })
+  const options = { applyInverse: true }
+  const classifier: ClassifierClass = new Classifier(options)
 
-      return new Promise((resolve) => {
-        const startTime = process.hrtime()
-        classifier.train(dataset)
-        port.postMessage({
-          type: MESSAGE.LOG,
-          value: `Model trained in ${process.hrtime(startTime)[0]} seconds`,
-        })
-        port.postMessage({ type: MESSAGE.STATUS, value: { fill: 'green', shape: 'dot', text: 'Classifier Trained' } })
-        port.postMessage({ type: MESSAGE.TRAINED, value: '' })
-
-        resolve(classifier)
-      })
-    })
-    .catch((err: Error) => {
-      port.postMessage({ type: MESSAGE.ERROR, value: `${err.message}.` })
-      port.postMessage({ type: MESSAGE.ERROR, value: 'Did you publish your goolge sheet?' })
-      port.postMessage({ type: MESSAGE.STATUS, value: { fill: 'red', shape: 'ring', text: err.message } })
-    })
+  startTime = process.hrtime()
+  classifier.train(dataset)
+  port.postMessage({
+    type: MESSAGE.LOG,
+    value: `Model trained in ${process.hrtime(startTime)[0]} seconds`,
+  })
+  port.postMessage({ type: MESSAGE.STATUS, value: { fill: 'green', shape: 'dot', text: 'Classifier Trained' } })
+  port.postMessage({ type: MESSAGE.TRAINED, value: '' })
+  return classifier
 }
 
 function createDataset(entries: SheetCell[]) {
