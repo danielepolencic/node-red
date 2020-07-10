@@ -1,6 +1,7 @@
 import { Worker, isMainThread, parentPort, workerData, WorkerOptions, MessagePort } from 'worker_threads'
 import { Response } from 'node-fetch'
 import { Node } from 'unist'
+import { resolve } from 'path'
 import {
   Classifier as ClassifierClass,
   ClassifierConstructor,
@@ -88,20 +89,11 @@ export function trainingWorker(sheetUrl: string): Worker {
 }
 
 function workerTs(file: string, options: WorkerOptions) {
-  options.eval = true
   if (!options.workerData) {
     options.workerData = {}
   }
   options.workerData.__filename = file
-  return new Worker(
-    `
-    const wk = require('worker_threads');
-    require('ts-node').register();
-    let file = wk.workerData.__filename;
-    delete wk.workerData.__filename;
-    require(file);`,
-    options,
-  )
+  return new Worker(resolve(__dirname, 'classifierWorker.js'), options)
 }
 
 function trainModel(sheetUrl: string, port: MessagePort): Promise<ClassifierClass> {
