@@ -7,3 +7,5 @@ context/
 .flows_cred.json.backup
 nodes/*.js
 nodes/*.js.map
+workers/*.js
+workers/*.js.map

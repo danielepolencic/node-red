@@ -63,7 +63,7 @@
         "sheetId": "1VNfad_dJBzGQFG_Jw5m3paB_BErpl-rOgGSiNYPdW0E",
         "sheetPage": "2",
         "x": 480,
-        "y": 280,
+        "y": 300,
         "wires": [
             [
                 "45aca1bb.f2139",
@@ -97,14 +97,14 @@
         "type": "debug",
         "z": "a87de0f3.4376f",
         "name": "category",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
         "complete": "category",
         "targetType": "msg",
         "x": 660,
-        "y": 220,
+        "y": 260,
         "wires": []
     },
     {
@@ -139,7 +139,7 @@
         "complete": "true",
         "targetType": "full",
         "x": 650,
-        "y": 300,
+        "y": 340,
         "wires": []
     },
     {
@@ -147,14 +147,14 @@
         "type": "debug",
         "z": "a87de0f3.4376f",
         "name": "name",
-        "active": false,
+        "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
         "complete": "name",
         "targetType": "msg",
         "x": 650,
-        "y": 260,
+        "y": 300,
         "wires": []
     },
     {
@@ -199,7 +199,7 @@
         "crontab": "",
         "once": true,
         "onceDelay": "5",
-        "x": 240,
+        "x": 260,
         "y": 340,
         "wires": [
             [
