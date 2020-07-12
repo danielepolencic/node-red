@@ -1,19 +1,9 @@
 import { Worker, isMainThread, parentPort, workerData, WorkerOptions, MessagePort } from 'worker_threads'
-import { Response } from 'node-fetch'
+import fetch, { Response } from 'node-fetch'
 import { Node } from 'unist'
 import { resolve } from 'path'
-import {
-  Classifier as ClassifierClass,
-  ClassifierConstructor,
-  DocumentConstructor,
-  DataSetConstructor,
-} from 'dclassify'
+import { Document, Classifier, DataSet } from 'dclassify'
 
-const fetch = require('node-fetch')
-const dclassify = require('dclassify')
-const Classifier: ClassifierConstructor = dclassify.Classifier
-const Document: DocumentConstructor = dclassify.Document
-const DataSet: DataSetConstructor = dclassify.DataSet
 const English = require('parse-english')
 const pos = require('retext-pos')()
 const keywords = require('retext-keywords')()
@@ -97,7 +87,7 @@ function workerTs(file: string, options: WorkerOptions) {
     options.workerData = {}
   }
   options.workerData.__filename = file
-  return new Worker(resolve(__dirname, 'classifierWorker.js'), options)
+  return new Worker(resolve(__dirname, 'classifier.worker.js'), options)
 }
 
 async function trainModel(sheetUrl: string, port: MessagePort) {
@@ -119,7 +109,7 @@ async function trainModel(sheetUrl: string, port: MessagePort) {
   const dataset = createDataset(entries)
   port.postMessage({ type: MESSAGE.LOG, value: `Dataset created in ${process.hrtime(startTime)[0]} seconds` })
   const options = { applyInverse: true }
-  const classifier: ClassifierClass = new Classifier(options)
+  const classifier = new Classifier(options)
 
   startTime = process.hrtime()
   classifier.train(dataset)

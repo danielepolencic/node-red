@@ -1,5 +1,5 @@
 import { Red, NodeProperties, Node } from 'node-red'
-import { trainingWorker, MESSAGE } from '../workers/classifierWorker'
+import { trainingWorker, MESSAGE } from './classifier.worker'
 import { Worker } from 'worker_threads'
 
 interface NodeProps extends NodeProperties {
