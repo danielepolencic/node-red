@@ -9,70 +9,54 @@ const pos = require('retext-pos')()
 const keywords = require('retext-keywords')()
 const toString = require('nlcst-to-string')
 
-interface SheetCell {
-  gs$cell: {
-    row: string
-    col: string
-  }
-  content: {
-    $t: string
-  }
-}
-
-interface Keyword {
-  matches: { node: Node }[]
-}
-
-interface Phrase {
-  matches: { nodes: Node[] }[]
+if (isMainThread) {
+  initWorker()
 }
 
 export const MESSAGE = {
   STATUS: 'STATUS',
   ERROR: 'ERROR',
   LOG: 'LOG',
-  TRAINED: 'TRAINED',
   RESULT: 'RESULT',
   PAYLOAD: 'PAYLOAD',
   SHUTDOWN: 'SHUTDOWN',
-}
-
-// For debug
-let queueNum = 1
-
-if (!isMainThread) {
-  initWorker()
-}
+} as const
 
 async function initWorker() {
-  if (parentPort) {
-    const port = parentPort
-    const classifier = await trainModel(workerData.sheetUrl, port)
-    port.on('message', (message) => {
-      switch (message.type) {
-        case MESSAGE.PAYLOAD:
-          const newText = new Document(`Text ${queueNum++}`, tokenize(message.value))
-          const result = classifier.classify(newText)
-          port.postMessage({
-            type: MESSAGE.RESULT,
-            value: {
-              payload: message.value,
-              category: result.category,
-              name: `${newText.id}`,
-            },
-          })
-          break
-        case MESSAGE.SHUTDOWN:
-          port.postMessage({
-            type: MESSAGE.LOG,
-            value: `Worker ${message.value} is shuting down...`,
-          })
-          process.exit(0)
-        default:
-          break
-      }
-    })
+  if (!parentPort) {
+    return
   }
+  const port = parentPort
+  // any message sent between this invocation and the next line is lost.
+  // we should:
+  // 1. move port.on before `trainModel`
+  // 2. if a message arrives before `trainModel` completes, then wait
+  // 3. When `trainModel` completes, replay all pending messages.
+  const classifier = await trainModel(workerData.sheetUrl, port)
+  port.on('message', (message) => {
+    switch (message.type) {
+      case MESSAGE.PAYLOAD:
+        const document = new Document(`Text ${new Date().toISOString()}`, tokenize(message.value))
+        const result = classifier.classify(document)
+        port.postMessage({
+          type: MESSAGE.RESULT,
+          value: {
+            payload: message.value,
+            category: result.category,
+            documentId: `${document.id}`,
+          },
+        })
+        break
+      case MESSAGE.SHUTDOWN:
+        port.postMessage({
+          type: MESSAGE.LOG,
+          value: `Worker ${message.value} is shutting down...`,
+        })
+        process.exit(0)
+      default:
+        break
+    }
+  })
 }
 
 export function trainingWorker(sheetUrl: string): Worker {
@@ -92,7 +76,7 @@ function workerTs(file: string, options: WorkerOptions) {
 
 async function trainModel(sheetUrl: string, port: MessagePort) {
   port.postMessage({ type: MESSAGE.STATUS, value: { fill: 'yellow', shape: 'ring', text: 'Fetch And Train Data...' } })
-  let json
+  let json: { feed: { entry: SheetCell[] } }
   try {
     const response: Response = await fetch(sheetUrl)
     json = await response.json()
@@ -105,20 +89,21 @@ async function trainModel(sheetUrl: string, port: MessagePort) {
 
   port.postMessage({ type: MESSAGE.LOG, value: 'Data Fetched' })
   const entries = json.feed.entry
-  let startTime = process.hrtime()
+  const datasetProcessingTime = process.hrtime()
   const dataset = createDataset(entries)
-  port.postMessage({ type: MESSAGE.LOG, value: `Dataset created in ${process.hrtime(startTime)[0]} seconds` })
-  const options = { applyInverse: true }
-  const classifier = new Classifier(options)
+  port.postMessage({
+    type: MESSAGE.LOG,
+    value: `Dataset created in ${process.hrtime(datasetProcessingTime)[0]} seconds`,
+  })
+  const classifier = new Classifier({ applyInverse: true })
 
-  startTime = process.hrtime()
+  const trainingTime = process.hrtime()
   classifier.train(dataset)
   port.postMessage({
     type: MESSAGE.LOG,
-    value: `Model trained in ${process.hrtime(startTime)[0]} seconds`,
+    value: `Model trained in ${process.hrtime(trainingTime)[0]} seconds`,
   })
   port.postMessage({ type: MESSAGE.STATUS, value: { fill: 'green', shape: 'dot', text: 'Classifier Trained' } })
-  port.postMessage({ type: MESSAGE.TRAINED, value: '' })
   return classifier
 }
 
@@ -182,4 +167,22 @@ export function tokenize(str: string): string[] {
     return phrase.matches[0].nodes.map(toString).join('')
   })
   return [...allKeywords, ...allKeywordPhrases]
+}
+
+interface SheetCell {
+  gs$cell: {
+    row: string
+    col: string
+  }
+  content: {
+    $t: string
+  }
+}
+
+interface Keyword {
+  matches: { node: Node }[]
+}
+
+interface Phrase {
+  matches: { nodes: Node[] }[]
 }
