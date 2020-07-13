@@ -31,7 +31,10 @@ async function initWorker() {
   port.on('message', async (message) => {
     switch (message.type) {
       case MESSAGE.PAYLOAD:
-        const document = new Document(`Text ${new Date().toISOString()}`, tokenize(message.value))
+        const document = new Document(
+          `Text ${new Date().toISOString()}`,
+          tokenize({ str: message.value.text, extraKeywords: parseKeywords(message.value.keywords || '') }),
+        )
         if (!classifier) {
           classifier = await trainModel(workerData.sheetUrl, port)
         }
@@ -106,28 +109,15 @@ async function trainModel(sheetUrl: string, port: MessagePort) {
 }
 
 function createDataset(entries: SheetCell[]) {
-  const texts = entries
-    .filter((it) => it.gs$cell.col === '1')
-    .reduce((obj, it) => {
-      return {
-        ...obj,
-        [`row-${it.gs$cell.row}`]: it.content.$t,
-      }
-    }, {} as Record<string, string>)
-
-  const categories = entries
-    .filter((it) => it.gs$cell.col === '2')
-    .reduce((obj, it) => {
-      return {
-        ...obj,
-        [`row-${it.gs$cell.row}`]: it.content.$t,
-      }
-    }, {} as Record<string, string>)
+  const texts = extractCol(entries, '1')
+  const keywords = extractCol(entries, '2')
+  const categories = extractCol(entries, '3')
 
   const rows = Object.keys(texts).map((row) => {
     return {
       row,
       text: texts[row],
+      keyword: keywords[row] || '',
       category: categories[row] || '',
     }
   })
@@ -135,7 +125,7 @@ function createDataset(entries: SheetCell[]) {
   const data = rows.map((it) => {
     return {
       category: it.category,
-      doc: new Document(it.row, tokenize(it.text)),
+      doc: new Document(it.row, tokenize({ str: it.text, extraKeywords: parseKeywords(it.keyword) })),
     }
   })
 
@@ -152,7 +142,7 @@ function createDataset(entries: SheetCell[]) {
   return dataset
 }
 
-export function tokenize(str: string): string[] {
+export function tokenize({ str, extraKeywords = [] }: { str: string; extraKeywords?: string[] }): string[] {
   const tree = new English().parse(str)
   const file = { data: { keywords: [] as Keyword[], keyphrases: [] as Phrase[] } }
   pos(tree)
@@ -164,7 +154,25 @@ export function tokenize(str: string): string[] {
   const allKeywordPhrases: string[] = file.data.keyphrases.map((phrase) => {
     return phrase.matches[0].nodes.map(toString).join('')
   })
-  return [...allKeywords, ...allKeywordPhrases]
+  return [...allKeywords, ...allKeywordPhrases, ...extraKeywords].filter((str, i, arr) => arr.indexOf(str) === i)
+}
+
+function extractCol(entries: SheetCell[], col: string) {
+  return entries
+    .filter((it) => it.gs$cell.col === col)
+    .reduce((obj, it) => {
+      return {
+        ...obj,
+        [`row-${it.gs$cell.row}`]: it.content.$t || '',
+      }
+    }, {} as Record<string, string>)
+}
+
+function parseKeywords(keywords: string) {
+  return keywords
+    .split(',')
+    .map((it) => it.trim())
+    .filter((it) => it !== '')
 }
 
 interface SheetCell {
