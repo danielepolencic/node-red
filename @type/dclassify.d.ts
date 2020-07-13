@@ -1,5 +1,6 @@
-declare module 'dclassify' {
-  class Classifier {
+declare module '~dclassify/index' {
+  export class Classifier {
+    constructor(options?: Options)
     train(dataset: DataSet): void
     classify(document: Document): Result
     applyInverse: boolean
@@ -8,36 +9,24 @@ declare module 'dclassify' {
     probabilities: any
   }
 
-  class Document {
-    constructor()
+  export class Document {
+    constructor(value: string, keywords: string[])
     id: string
     token: string[]
     add(token: string): void
   }
 
-  class DataSet {
+  export class DataSet {
     add(label: string, items: Document[]): void
   }
 
-  interface ClassifierConstructor {
-    new (options?: Options): Classifier
-  }
-
-  interface DocumentConstructor {
-    new (id: string, token: string[]): Document
-  }
-
-  interface DataSetConstructor {
-    new (): DataSet
-  }
-
-  interface Options {
+  export interface Options {
     applyInverse?: boolean
     probabilityThreshold?: number
     defaultCategory?: string
   }
 
-  interface Result {
+  export interface Result {
     category: string
     probability: number
     timesMoreLikely: number
@@ -47,4 +36,9 @@ declare module 'dclassify' {
       probability: any
     }[]
   }
+}
+
+declare module 'dclassify' {
+  import alias = require('~dclassify/index')
+  export = alias
 }

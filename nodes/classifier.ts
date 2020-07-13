@@ -1,5 +1,5 @@
 import { Red, NodeProperties, Node } from 'node-red'
-import { trainingWorker, MESSAGE } from '../workers/classifierWorker'
+import { trainingWorker, MESSAGE } from './classifier.worker'
 import { Worker } from 'worker_threads'
 
 interface NodeProps extends NodeProperties {
@@ -14,12 +14,30 @@ module.exports = function (RED: Red) {
     const sheetId = config.sheetId
     const sheetPage = config.sheetPage
     const sheetUrl = getSheetUrl(sheetId, sheetPage)
-    let newWorker: Worker
-    let currentWorker: Worker
 
-    currentWorker = trainingWorker(sheetUrl)
-    initWorkerListener(currentWorker, true)
-    function initWorkerListener(worker: Worker, isFirstWorker = false) {
+    let currentWorker = initWorker(sheetUrl)
+
+    node.on('input', function (msg, send, done) {
+      switch (msg.payload) {
+        case 'reload': {
+          currentWorker.postMessage({
+            type: MESSAGE.SHUTDOWN,
+            value: currentWorker.threadId,
+          })
+          currentWorker = initWorker(sheetUrl)
+          done()
+          return
+        }
+        default: {
+          currentWorker.postMessage({ type: MESSAGE.PAYLOAD, value: msg.payload })
+          break
+        }
+      }
+      done()
+    })
+
+    function initWorker(sheetUrl: string): Worker {
+      const worker = trainingWorker(sheetUrl)
       worker.on('message', (message) => {
         switch (message.type) {
           case MESSAGE.STATUS:
@@ -32,21 +50,11 @@ module.exports = function (RED: Red) {
             node.log(message.value)
             break
           case MESSAGE.RESULT:
+            node.log(`Classified. ${message.value.documentId}, Worker ${currentWorker.threadId}`)
             node.send({
               payload: message.value.payload,
               category: message.value.category,
-              // For debug
-              name: `${message.value.name}, Worker ${currentWorker.threadId}`,
             })
-            break
-          case MESSAGE.TRAINED:
-            if (!isFirstWorker) {
-              currentWorker.postMessage({
-                type: MESSAGE.SHUTDOWN,
-                value: currentWorker.threadId,
-              })
-            }
-            currentWorker = worker
             break
           default:
             break
@@ -56,19 +64,8 @@ module.exports = function (RED: Red) {
       worker.on('exit', (code: number) => {
         if (code !== 0) node.error(new Error(`Worker stopped with exit code ${code}`))
       })
+      return worker
     }
-
-    node.on('input', function (msg, send, done) {
-      const payload = msg.payload
-      if (payload === 'reload') {
-        newWorker = trainingWorker(sheetUrl)
-        initWorkerListener(newWorker)
-        done()
-        return
-      }
-      currentWorker.postMessage({ type: MESSAGE.PAYLOAD, value: payload })
-      done()
-    })
   }
   RED.nodes.registerType('classifier', ClassifierNode)
 }

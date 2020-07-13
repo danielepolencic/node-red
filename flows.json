@@ -61,9 +61,9 @@
         "z": "a87de0f3.4376f",
         "name": "Classifier",
         "sheetId": "1VNfad_dJBzGQFG_Jw5m3paB_BErpl-rOgGSiNYPdW0E",
-        "sheetPage": "2",
-        "x": 480,
-        "y": 300,
+        "sheetPage": "1",
+        "x": 460,
+        "y": 280,
         "wires": [
             [
                 "45aca1bb.f2139",
@@ -76,10 +76,10 @@
         "id": "e8d57a97.8a55a8",
         "type": "inject",
         "z": "a87de0f3.4376f",
-        "name": "Positive Text",
+        "name": "With Keywords",
         "topic": "string",
-        "payload": "awesome, cool, amazing!! Yay.",
-        "payloadType": "str",
+        "payload": "{\"text\":\"awesome, cool, amazing!! Yay.\",\"keywords\":\"amaze, awesome,yeah\"}",
+        "payloadType": "json",
         "repeat": "3",
         "crontab": "",
         "once": false,
@@ -97,7 +97,7 @@
         "type": "debug",
         "z": "a87de0f3.4376f",
         "name": "category",
-        "active": false,
+        "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -111,15 +111,15 @@
         "id": "f1018708.79f648",
         "type": "inject",
         "z": "a87de0f3.4376f",
-        "name": "Negative Text",
+        "name": "Without Keywords",
         "topic": "",
-        "payload": "terrible, shitty thing. Damn. Sucks!!",
-        "payloadType": "str",
+        "payload": "{\"text\":\"awesome, cool, amazing!! Yay.\"}",
+        "payloadType": "json",
         "repeat": "5",
         "crontab": "",
         "once": false,
         "onceDelay": 0.1,
-        "x": 240,
+        "x": 250,
         "y": 260,
         "wires": [
             [
@@ -147,7 +147,7 @@
         "type": "debug",
         "z": "a87de0f3.4376f",
         "name": "name",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -166,46 +166,6 @@
         "x": 510,
         "y": 380,
         "wires": []
-    },
-    {
-        "id": "a071ea33.2f20d8",
-        "type": "inject",
-        "z": "a87de0f3.4376f",
-        "name": "Positive Text",
-        "topic": "string",
-        "payload": "amazing, awesome movie!! Yeah!! Oh boy",
-        "payloadType": "str",
-        "repeat": "",
-        "crontab": "",
-        "once": false,
-        "onceDelay": 0.1,
-        "x": 250,
-        "y": 300,
-        "wires": [
-            [
-                "76badf0c.346e8"
-            ]
-        ]
-    },
-    {
-        "id": "75e7d82c.c1d178",
-        "type": "inject",
-        "z": "a87de0f3.4376f",
-        "name": "Long Text",
-        "topic": "string",
-        "payload": "typically, approaches to automatic term extraction make use of linguistic processors (part of speech tagging, phrase chunking) to extract terminological candidates, i.e. syntactically plausible terminological noun phrases, nps (e.g. compounds \"credit card\", adjective-nps \"local tourist information office\", and prepositional-nps \"board of directors\" - in english, the first two constructs are the most frequent). terminological entries are then filtered from the candidate list using statistical and machine learning methods. once filtered, because of their low ambiguity and high specificity, these terms are particularly useful for conceptualizing a knowledge domain or for supporting the creation of a domain ontology. furthermore, terminology extraction is a very useful starting point for semantic similarity, knowledge management, human translation and machine translation, etc.",
-        "payloadType": "str",
-        "repeat": "",
-        "crontab": "",
-        "once": true,
-        "onceDelay": "5",
-        "x": 260,
-        "y": 340,
-        "wires": [
-            [
-                "76badf0c.346e8"
-            ]
-        ]
     },
     {
         "id": "93b996fe.a80c88",
