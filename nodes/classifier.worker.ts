@@ -2,16 +2,12 @@ import { Worker, isMainThread, parentPort, workerData, WorkerOptions, MessagePor
 import fetch, { Response } from 'node-fetch'
 import { Node } from 'unist'
 import { resolve } from 'path'
-import { Document, Classifier, DataSet } from 'dclassify'
+import { Document, Classifier, DataSet, Result } from 'dclassify'
 
 const English = require('parse-english')
 const pos = require('retext-pos')()
 const keywords = require('retext-keywords')()
 const toString = require('nlcst-to-string')
-
-if (isMainThread) {
-  initWorker()
-}
 
 export const MESSAGE = {
   STATUS: 'STATUS',
@@ -22,21 +18,23 @@ export const MESSAGE = {
   SHUTDOWN: 'SHUTDOWN',
 } as const
 
+if (!isMainThread) {
+  initWorker()
+}
+
 async function initWorker() {
   if (!parentPort) {
     return
   }
   const port = parentPort
-  // any message sent between this invocation and the next line is lost.
-  // we should:
-  // 1. move port.on before `trainModel`
-  // 2. if a message arrives before `trainModel` completes, then wait
-  // 3. When `trainModel` completes, replay all pending messages.
-  const classifier = await trainModel(workerData.sheetUrl, port)
-  port.on('message', (message) => {
+  let classifier: Classifier
+  port.on('message', async (message) => {
     switch (message.type) {
       case MESSAGE.PAYLOAD:
         const document = new Document(`Text ${new Date().toISOString()}`, tokenize(message.value))
+        if (!classifier) {
+          classifier = await trainModel(workerData.sheetUrl, port)
+        }
         const result = classifier.classify(document)
         port.postMessage({
           type: MESSAGE.RESULT,

@@ -62,8 +62,8 @@
         "name": "Classifier",
         "sheetId": "1VNfad_dJBzGQFG_Jw5m3paB_BErpl-rOgGSiNYPdW0E",
         "sheetPage": "2",
-        "x": 480,
-        "y": 300,
+        "x": 460,
+        "y": 280,
         "wires": [
             [
                 "45aca1bb.f2139",
