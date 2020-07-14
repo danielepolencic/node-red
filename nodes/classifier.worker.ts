@@ -21,22 +21,43 @@ export const MESSAGE = {
 if (!isMainThread) {
   initWorker()
 }
-
+let a = 1
 async function initWorker() {
   if (!parentPort) {
     return
   }
   const port = parentPort
   let classifier: Classifier
+  let isInitClassifier = false
+  let queue: Document[] = []
   port.on('message', async (message) => {
     switch (message.type) {
       case MESSAGE.PAYLOAD:
         const document = new Document(
-          `Text ${new Date().toISOString()}`,
+          `Text ${a++}`,
           tokenize({ str: message.value.text, extraKeywords: parseKeywords(message.value.keywords || '') }),
         )
         if (!classifier) {
-          classifier = await trainModel(workerData.sheetUrl, port)
+          if (!isInitClassifier) {
+            isInitClassifier = true
+            queue.push(document)
+            classifier = await trainModel(workerData.sheetUrl, port)
+            queue.forEach((document) => {
+              console.log(document.id)
+              const result = classifier.classify(document)
+              port.postMessage({
+                type: MESSAGE.RESULT,
+                value: {
+                  payload: message.value,
+                  category: result.category,
+                  documentId: `${document.id}`,
+                },
+              })
+            })
+            break
+          }
+          queue.push(document)
+          break
         }
         const result = classifier.classify(document)
         port.postMessage({
