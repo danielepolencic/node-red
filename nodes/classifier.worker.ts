@@ -21,7 +21,7 @@ export const MESSAGE = {
 if (!isMainThread) {
   initWorker()
 }
-let a = 1
+
 async function initWorker() {
   if (!parentPort) {
     return
@@ -34,7 +34,7 @@ async function initWorker() {
     switch (message.type) {
       case MESSAGE.PAYLOAD:
         const document = new Document(
-          `Text ${a++}`,
+          `Text ${new Date().toISOString()}`,
           tokenize({ str: message.value.text, extraKeywords: parseKeywords(message.value.keywords || '') }),
         )
         if (!classifier) {
@@ -43,7 +43,6 @@ async function initWorker() {
             queue.push(document)
             classifier = await trainModel(workerData.sheetUrl, port)
             queue.forEach((document) => {
-              console.log(document.id)
               const result = classifier.classify(document)
               port.postMessage({
                 type: MESSAGE.RESULT,
