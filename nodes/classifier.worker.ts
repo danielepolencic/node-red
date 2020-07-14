@@ -28,6 +28,8 @@ async function initWorker() {
   }
   const port = parentPort
   let classifier: Classifier
+  let isInitClassifier = false
+  let queue: Document[] = []
   port.on('message', async (message) => {
     switch (message.type) {
       case MESSAGE.PAYLOAD:
@@ -36,7 +38,25 @@ async function initWorker() {
           tokenize({ str: message.value.text, extraKeywords: parseKeywords(message.value.keywords || '') }),
         )
         if (!classifier) {
-          classifier = await trainModel(workerData.sheetUrl, port)
+          if (!isInitClassifier) {
+            isInitClassifier = true
+            queue.push(document)
+            classifier = await trainModel(workerData.sheetUrl, port)
+            queue.forEach((document) => {
+              const result = classifier.classify(document)
+              port.postMessage({
+                type: MESSAGE.RESULT,
+                value: {
+                  payload: message.value,
+                  category: result.category,
+                  documentId: `${document.id}`,
+                },
+              })
+            })
+            break
+          }
+          queue.push(document)
+          break
         }
         const result = classifier.classify(document)
         port.postMessage({
