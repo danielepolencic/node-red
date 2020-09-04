@@ -10,8 +10,12 @@
   "author": "",
   "license": "UNLICENSED",
   "dependencies": {
+    "@types/cheerio": "^0.22.21",
     "@types/node-fetch": "^2.5.7",
     "@types/node-red": "^0.20.1",
+    "cheerio": "^1.0.0-rc.3",
+    "date-fns": "^2.16.1",
+    "date-fns-tz": "^1.0.10",
     "dclassify": "^1.1.2",
     "human-interval": "^1.0.0",
     "nlcst-to-string": "^2.0.4",
