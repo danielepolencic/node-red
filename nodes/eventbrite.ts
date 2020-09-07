@@ -20,13 +20,25 @@ module.exports = function (RED: Red) {
       try {
         const allEventFromEventbrite = await (await getAllEvent({ token, organizationId })).json()
         const originalEvent = (await (await getSingleEvent({ token, eventId })).json()) as EventEventBrite
-        const events = (allEventFromEventbrite as ResponseEvents).events.map((it: EventEventBrite) => {
-          const $ = cheerio.load(it.description.html || '', { decodeEntities: false })
-          return {
-            ...it,
-            code: $('#code').text() || '',
-          }
-        })
+        const originalEventStructuredContent = (await (
+          await getStructuredContent({ token, eventId })
+        ).json()) as StructuredContent
+        const events = await Promise.all(
+          (allEventFromEventbrite as ResponseEvents).events.map(async (it: EventEventBrite) => {
+            const structuredContent: StructuredContent = await (
+              await getStructuredContent({ token, eventId: it.id })
+            ).json()
+
+            const $ = cheerio.load(structuredContent.modules[0].data.body.text || '', { decodeEntities: false })
+            console.log(structuredContent.modules[0].data.body.text)
+            console.log($('#code').last().text())
+            return {
+              ...it,
+              structuredContent,
+              code: $('em').last().text() || '',
+            }
+          }),
+        )
 
         // events.forEach((it) => {
         //   if (it.id === eventId) {
@@ -34,6 +46,8 @@ module.exports = function (RED: Red) {
         //   }
         //   deleteEvent({ token, eventId: it.id })
         // })
+
+        // const event = await (await getSingleEvent({ token, eventId })).json()
 
         const { added, unchanged } = diff({
           previous: events.map((it) => it.code),
@@ -44,11 +58,18 @@ module.exports = function (RED: Red) {
           added.map(async (courseId) => {
             node.log(`Creating EventBrite event for ${courseId}`)
             const course = courses.find((it) => it.id === courseId)!
+
+            if (!course.fullDescription) {
+              node.log(`Full Description not found at ${courseId}.`)
+            }
+
             return await createEvent({
               token,
               eventId,
               eventAttributes: getEventAttributes(course, originalEvent),
               ticketAttributes: getTicketAttributes(course, originalEvent),
+              descriptionAttributes: getDescriptionAttributes(course),
+              version: parseInt(originalEventStructuredContent.page_version_number) + 1,
             })
           }),
         )
@@ -64,7 +85,7 @@ module.exports = function (RED: Red) {
             }
 
             if (
-              !isSameDescription({ code: course.id, description: course.description }, referenceEvent) ||
+              !isSameSummary({ description: course.description }, referenceEvent) ||
               !isSameDate(course, referenceEvent)
             ) {
               node.log(`Updating description and starting date for ${courseId}`)
@@ -85,12 +106,34 @@ module.exports = function (RED: Red) {
               })
             }
 
+            const fullDescription = referenceEvent.structuredContent.modules[0].data.body.text
+            const version = parseInt(referenceEvent.structuredContent.page_version_number) + 1
+
+            if (!course.fullDescription) {
+              node.log(`Full Description not found at ${courseId}.`)
+            }
+
+            if (
+              !isSameDescription({ code: course.id, fullDescription: course.fullDescription || '' }, fullDescription)
+            ) {
+              node.log(`Updating full description to ${courseId}`)
+              await (
+                await updateDescription({
+                  token,
+                  eventId: referenceEvent.id,
+                  version,
+                  descriptionAttributes: getDescriptionAttributes(course),
+                })
+              ).json()
+            }
+
             return { id: courseId }
           }),
         )
 
         send({
           payload: { newEvents, updatedEvent },
+          // payload: { event },
         })
       } catch (error) {
         send({
@@ -186,19 +229,45 @@ async function updateTicket({
   })
 }
 
+async function updateDescription({
+  token,
+  eventId,
+  version,
+  descriptionAttributes,
+}: {
+  token: string
+  eventId: string
+  version: number
+  descriptionAttributes: DescriptionAttributes
+}) {
+  return await fetch(`${EVENTBRITE_URL}/events/${eventId}/structured_content/${version}/`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(descriptionAttributes),
+  })
+}
+
 async function createEvent({
   token,
   eventId,
   eventAttributes,
   ticketAttributes,
+  descriptionAttributes,
+  version,
 }: {
   token: string
   eventId: string
   eventAttributes: EventAttributes
   ticketAttributes: TicketClassAttributes
+  descriptionAttributes: DescriptionAttributes
+  version: number
 }): Promise<{ published: boolean; id: string }> {
   const copyResponse: CopyResponse = await (await copyEvent({ token, eventId })).json()
   const newEvent = await (await getSingleEvent({ token, eventId: copyResponse.id })).json()
+
   const updateResponse = await (
     await updateEvent({
       token,
@@ -206,6 +275,7 @@ async function createEvent({
       attributes: eventAttributes,
     })
   ).json()
+
   const ticketResponse = await (
     await updateTicket({
       token,
@@ -214,12 +284,25 @@ async function createEvent({
       attributes: ticketAttributes,
     })
   ).json()
+
+  const descriptionResponse = await (
+    await updateDescription({ token, eventId: newEvent.id, version, descriptionAttributes })
+  ).json()
   const publish = await (await publishEvent({ token, eventId: copyResponse.id })).json()
-  return { ...publish, id: newEvent.id, updateResponse, ticketResponse }
+  return { ...publish, id: newEvent.id, updateResponse, ticketResponse, descriptionResponse }
 }
 
 function isSameDate(a: { startsAt: string; timezone: string }, b: EventEventBrite) {
   return zonedTimeToUtc(a.startsAt, a.timezone).valueOf() === new Date(b.start.utc).valueOf()
+}
+
+async function getStructuredContent({ token, eventId }: { token: string; eventId: string }) {
+  return await fetch(`${EVENTBRITE_URL}/events/${eventId}/structured_content/`, {
+    headers: {
+      Authorization: `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    },
+  })
 }
 
 function isSamePrice(a: { price: number }, b: EventEventBrite) {
@@ -227,17 +310,21 @@ function isSamePrice(a: { price: number }, b: EventEventBrite) {
   return a.price * 100 === b.ticket_classes[0].cost.value
 }
 
-function isSameDescription(a: { code: string; description: string }, b: { description: { html: string | null } }) {
+function isSameDescription(a: { code: string; fullDescription: string }, b: string | null) {
   return (
     cheerio.load(renderDescription(a), { decodeEntities: false })('body').text() ===
     cheerio
-      .load(b.description.html || '', { decodeEntities: false })('body')
+      .load(b || '', { decodeEntities: false })('body')
       .text()
   )
 }
 
-function renderDescription({ code, description }: { code: string; description: string }) {
-  return `${description}<p>Course code: <span id="code">${code}</span></p>`
+function isSameSummary(a: { description: string }, b: { description: { html: string | null } }) {
+  return a.description === b.description.html
+}
+
+function renderDescription({ code, fullDescription }: { code: string; fullDescription: string }) {
+  return `${fullDescription}<p>Course code: <em id="code">${code}</em></p>`
 }
 
 function getEventAttributes(course: CourseInPerson | CourseOnline, event: EventEventBrite): EventAttributes {
@@ -246,8 +333,9 @@ function getEventAttributes(course: CourseInPerson | CourseOnline, event: EventE
       name: {
         html: course.title,
       },
+      // summary == description
       description: {
-        html: renderDescription({ code: course.id, description: course.description }),
+        html: course.description,
       },
       start: {
         timezone: event.start.timezone,
@@ -266,6 +354,23 @@ function getTicketAttributes(course: CourseInPerson | CourseOnline, event: Event
     ticket_class: {
       cost: `${event.currency},${course.price}00`,
     },
+  }
+}
+
+function getDescriptionAttributes(course: CourseInPerson | CourseOnline): DescriptionAttributes {
+  return {
+    modules: [
+      {
+        data: {
+          body: {
+            alignment: 'left',
+            text: renderDescription({ code: course.id, fullDescription: course.fullDescription || '' }),
+          },
+        },
+        type: 'text',
+      },
+    ],
+    publish: true,
   }
 }
 
@@ -336,6 +441,7 @@ interface CourseOnline {
   timezone: string
   link: string
   url: string
+  fullDescription?: string
 }
 
 interface CourseInPerson {
@@ -354,6 +460,7 @@ interface CourseInPerson {
   timezone: string
   link: string
   url: string
+  fullDescription?: string
 }
 
 interface EventAttributes {
@@ -392,4 +499,36 @@ interface EventEventBrite {
 
 interface ResponseEvents {
   events: EventEventBrite[]
+}
+
+interface StructuredContent {
+  page_version_number: string
+  purpose: 'listing'
+  modules: [TextModule]
+}
+
+interface TextModule {
+  id: string
+  type: 'text'
+  data: {
+    body: {
+      text: string
+      alignment: 'left'
+    }
+  }
+}
+
+interface DescriptionAttributes {
+  modules: [TextModuleAttributes]
+  publish: boolean
+}
+
+interface TextModuleAttributes {
+  data: {
+    body: {
+      alignment: 'left'
+      text: string
+    }
+  }
+  type: 'text'
 }
