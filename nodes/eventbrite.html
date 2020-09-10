@@ -1,0 +1,41 @@
+<script type="text/javascript">
+  RED.nodes.registerType('eventbrite', {
+    category: 'Eventbrite',
+    color: '#ff8000',
+    defaults: {
+      name: { value: '' },
+      token: { value: '' },
+      eventId: { value: '' },
+      organizationId: { value: '' },
+    },
+    inputs: 1,
+    outputs: 1,
+    icon: 'white-globe.svg',
+    label: function () {
+      return this.name || 'eventbrite'
+    },
+  })
+</script>
+
+<script type="text/html" data-template-name="eventbrite">
+  <div class="form-row">
+    <label for="node-input-name"><i class="fa fa-tag"></i> Name</label>
+    <input type="text" id="node-input-name" placeholder="Name">
+  </div>
+  <div class="form-row">
+    <label for="node-input-token"><i class="fa fa-lock"></i> API Token</label>
+    <input type="text" id="node-input-token" placeholder="API Token">
+  </div>
+  <div class="form-row">
+    <label for="node-input-eventId"><i class="fa fa-copy"></i> Event ID to copy</label>
+    <input type="text" id="node-input-eventId" placeholder="Event ID">
+  </div>
+  <div class="form-row">
+    <label for="node-input-organizationId"><i class="fa fa-copy"></i> Organization ID</label>
+    <input type="text" id="node-input-organizationId" placeholder="Organization ID">
+  </div>
+</script>
+
+<script type="text/html" data-help-name="eventbrite">
+  <p>Copy and sync eventbrite's events.</p>
+</script>
