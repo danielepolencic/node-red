@@ -20,7 +20,7 @@
     "human-interval": "^1.0.0",
     "nlcst-to-string": "^2.0.4",
     "node-fetch": "^2.6.0",
-    "node-red": "^1.0.6",
+    "node-red": "^3.0.2",
     "parse-english": "^4.1.3",
     "retext-keywords": "^6.0.0",
     "retext-pos": "^3.0.0",
